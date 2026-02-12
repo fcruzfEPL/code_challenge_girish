@@ -14,8 +14,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,22 +42,34 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        order = new Order();
-        order.setId(1L);
-        order.setOrderNumber("ORD-2025-0001");
-        order.setCustomerName("Test Customer");
+        order = Order.builder()
+                .id(1L)
+                .orderNumber("ORD-2025-0001")
+                .customerName("Test Customer")
+                .build();
 
-        ItemRequest itemRequest = new ItemRequest("SKU-001", "Test Item", 2, BigDecimal.valueOf(100));
-        orderRequest = new OrderRequest("ORD-2025-0001", "Test Customer", Arrays.asList(itemRequest));
+        ItemRequest itemRequest = ItemRequest.builder()
+                .sku("SKU-001")
+                .name("Test Item")
+                .quantity(2)
+                .unitPrice(BigDecimal.valueOf(100))
+                .build();
 
-        orderResponse = new OrderResponse();
-        orderResponse.setId(1L);
-        orderResponse.setOrderNumber("ORD-2025-0001");
+        orderRequest = OrderRequest.builder()
+                .orderNumber("ORD-2025-0001")
+                .customerName("Test Customer")
+                .items(Collections.singletonList(itemRequest))
+                .build();
+
+        orderResponse = OrderResponse.builder()
+                .id(1L)
+                .orderNumber("ORD-2025-0001")
+                .build();
     }
 
     @Test
     void testFindAll() {
-        when(orderRepository.findAll()).thenReturn(Arrays.asList(order));
+        when(orderRepository.findAll()).thenReturn(Collections.singletonList(order));
         when(orderMapper.toResponse(any(Order.class))).thenReturn(orderResponse);
 
         List<OrderResponse> result = orderService.findAll();
@@ -88,9 +101,11 @@ class OrderServiceTest {
     @Test
     void testCreateSuccess() {
         when(orderRepository.existsByOrderNumber(anyString())).thenReturn(false);
-        when(orderMapper.toEntity(orderRequest)).thenReturn(order);
+        // Note: In the updated Service, we use manual builder, not mapper.toEntity
+        // So we don't mock orderMapper.toEntity(orderRequest) anymore for create
+        
         when(orderRepository.save(any(Order.class))).thenReturn(order);
-        when(orderMapper.toResponse(order)).thenReturn(orderResponse);
+        when(orderMapper.toResponse(any(Order.class))).thenReturn(orderResponse);
 
         OrderResponse result = orderService.create(orderRequest);
 

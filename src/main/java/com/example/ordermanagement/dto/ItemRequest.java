@@ -1,8 +1,20 @@
 package com.example.ordermanagement.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ItemRequest {
 
     @NotBlank(message = "SKU is required")
@@ -19,46 +31,6 @@ public class ItemRequest {
     @Positive(message = "Unit price must be positive")
     private BigDecimal unitPrice;
 
-    // Constructors
-    public ItemRequest() {}
-
-    public ItemRequest(String sku, String name, Integer quantity, BigDecimal unitPrice) {
-        this.sku = sku;
-        this.name = name;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
-    }
-
-    // Getters and Setters
-    public String getSku() {
-        return sku;
-    }
-
-    public void setSku(String sku) {
-        this.sku = sku;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
-
-    public BigDecimal getUnitPrice() {
-        return unitPrice;
-    }
-
-    public void setUnitPrice(BigDecimal unitPrice) {
-        this.unitPrice = unitPrice;
-    }
+    private String imageUrl;
+    private BigDecimal weight;
 }
