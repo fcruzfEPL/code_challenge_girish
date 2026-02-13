@@ -3,6 +3,7 @@ package com.example.ordermanagement.service;
 import com.example.ordermanagement.dto.ItemRequest;
 import com.example.ordermanagement.dto.OrderRequest;
 import com.example.ordermanagement.dto.OrderResponse;
+import com.example.ordermanagement.dto.PagedResponse;
 import com.example.ordermanagement.entity.Order;
 import com.example.ordermanagement.exception.DuplicateOrderNumberException;
 import com.example.ordermanagement.exception.ResourceNotFoundException;
@@ -14,9 +15,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,29 +46,45 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        order = new Order();
-        order.setId(1L);
-        order.setOrderNumber("ORD-2025-0001");
-        order.setCustomerName("Test Customer");
+        order = Order.builder()
+                .id(1L)
+                .orderNumber("ORD-2025-0001")
+                .customerName("Test Customer")
+                .build();
 
-        ItemRequest itemRequest = new ItemRequest("SKU-001", "Test Item", 2, BigDecimal.valueOf(100));
-        orderRequest = new OrderRequest("ORD-2025-0001", "Test Customer", Arrays.asList(itemRequest));
+        ItemRequest itemRequest = ItemRequest.builder()
+                .sku("SKU-001")
+                .name("Test Item")
+                .quantity(2)
+                .unitPrice(BigDecimal.valueOf(100))
+                .build();
 
-        orderResponse = new OrderResponse();
-        orderResponse.setId(1L);
-        orderResponse.setOrderNumber("ORD-2025-0001");
+        orderRequest = OrderRequest.builder()
+                .orderNumber("ORD-2025-0001")
+                .customerName("Test Customer")
+                .items(Collections.singletonList(itemRequest))
+                .build();
+
+        orderResponse = OrderResponse.builder()
+                .id(1L)
+                .orderNumber("ORD-2025-0001")
+                .build();
     }
 
     @Test
     void testFindAll() {
-        when(orderRepository.findAll()).thenReturn(Arrays.asList(order));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Order> page = new PageImpl<>(Collections.singletonList(order));
+
+        when(orderRepository.findAll(pageable)).thenReturn(page);
         when(orderMapper.toResponse(any(Order.class))).thenReturn(orderResponse);
 
-        List<OrderResponse> result = orderService.findAll();
+        PagedResponse<OrderResponse> result = orderService.findAll(pageable);
 
         assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(orderRepository, times(1)).findAll();
+        assertEquals(1, result.getContent().size());
+        assertEquals(1, result.getTotalElements());
+        verify(orderRepository, times(1)).findAll(pageable);
     }
 
     @Test
@@ -88,9 +109,9 @@ class OrderServiceTest {
     @Test
     void testCreateSuccess() {
         when(orderRepository.existsByOrderNumber(anyString())).thenReturn(false);
-        when(orderMapper.toEntity(orderRequest)).thenReturn(order);
+        
         when(orderRepository.save(any(Order.class))).thenReturn(order);
-        when(orderMapper.toResponse(order)).thenReturn(orderResponse);
+        when(orderMapper.toResponse(any(Order.class))).thenReturn(orderResponse);
 
         OrderResponse result = orderService.create(orderRequest);
 
@@ -103,6 +124,26 @@ class OrderServiceTest {
         when(orderRepository.existsByOrderNumber(anyString())).thenReturn(true);
 
         assertThrows(DuplicateOrderNumberException.class, () -> orderService.create(orderRequest));
+    }
+
+    @Test
+    void testUpdateSuccess() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+      //  when(orderRepository.existsByOrderNumber(anyString())).thenReturn(false);
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
+        when(orderMapper.toResponse(any(Order.class))).thenReturn(orderResponse);
+
+        OrderResponse result = orderService.update(1L, orderRequest);
+
+        assertNotNull(result);
+        verify(orderRepository, times(1)).save(any(Order.class));
+    }
+
+    @Test
+    void testUpdateNotFound() {
+        when(orderRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> orderService.update(1L, orderRequest));
     }
 
     @Test
